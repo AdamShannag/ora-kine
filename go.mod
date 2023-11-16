@@ -6,6 +6,7 @@ require (
 	github.com/Rican7/retry v0.1.0
 	github.com/canonical/go-dqlite v1.5.1
 	github.com/go-sql-driver/mysql v1.7.1
+	github.com/godoes/gorm-oracle v1.3.59
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgx/v5 v5.4.2
 	github.com/klauspost/compress v1.17.2
@@ -25,6 +26,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.9
 	go.etcd.io/etcd/server/v3 v3.5.9
 	google.golang.org/grpc v1.56.3
+	gorm.io/gorm v1.25.5
 	k8s.io/client-go v0.25.4
 )
 
@@ -36,6 +38,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -48,6 +51,8 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
+	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
@@ -63,8 +68,10 @@ require (
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
+	github.com/sijms/go-ora/v2 v2.7.21 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/thoas/go-funk v0.9.3 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20201229170055-e5319fda7802 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect

@@ -1,0 +1,39 @@
+package oracle
+
+import (
+	"context"
+	"time"
+
+	"github.com/k3s-io/kine/pkg/drivers/generic"
+	"github.com/k3s-io/kine/pkg/logstructured"
+	"github.com/k3s-io/kine/pkg/logstructured/sqllog"
+	"github.com/k3s-io/kine/pkg/server"
+	"github.com/k3s-io/kine/pkg/tls"
+
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+const (
+	defaultDSN = "oracle://oracle:oralce@localhost/"
+)
+
+func New(ctx context.Context, dataSourceName string, tlsInfo tls.Config, connPoolConfig generic.ConnectionPoolConfig, metricsRegisterer prometheus.Registerer) (server.Backend, error) {
+	parsedDSN, err := prepareDSN(dataSourceName, tlsInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	dialect, err := NewOracleDialect(ctx, parsedDSN, connPoolConfig, metricsRegisterer)
+	if err != nil {
+		return nil, err
+	}
+
+	dialect.FillRetryDuration = time.Millisecond + 5
+
+	if err := dialect.KineTable.Setup(dialect.GormDB); err != nil {
+		return nil, err
+	}
+
+	dialect.Migrate(context.Background())
+	return logstructured.New(sqllog.New(dialect)), nil
+}
