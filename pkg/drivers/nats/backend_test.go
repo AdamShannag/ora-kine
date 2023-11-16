@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	kserver "github.com/k3s-io/kine/pkg/server"
+	kserver "github.com/AdamShannag/ora-kine/pkg/server"
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats-server/v2/test"
 	"github.com/nats-io/nats.go"

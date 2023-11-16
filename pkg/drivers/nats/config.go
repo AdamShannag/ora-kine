@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	natsserver "github.com/k3s-io/kine/pkg/drivers/nats/server"
-	"github.com/k3s-io/kine/pkg/tls"
+	natsserver "github.com/AdamShannag/ora-kine/pkg/drivers/nats/server"
+	"github.com/AdamShannag/ora-kine/pkg/tls"
 	"github.com/nats-io/jsm.go/natscontext"
 	"github.com/nats-io/nats.go"
 	"github.com/sirupsen/logrus"

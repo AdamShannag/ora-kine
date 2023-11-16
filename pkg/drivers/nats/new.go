@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"time"
 
-	natsserver "github.com/k3s-io/kine/pkg/drivers/nats/server"
-	"github.com/k3s-io/kine/pkg/server"
-	"github.com/k3s-io/kine/pkg/tls"
+	natsserver "github.com/AdamShannag/ora-kine/pkg/drivers/nats/server"
+	"github.com/AdamShannag/ora-kine/pkg/server"
+	"github.com/AdamShannag/ora-kine/pkg/tls"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/sirupsen/logrus"

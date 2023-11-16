@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"net/url"
 
+	"github.com/AdamShannag/ora-kine/pkg/drivers/generic"
+	"github.com/AdamShannag/ora-kine/pkg/tls"
 	oracle "github.com/godoes/gorm-oracle"
-	"github.com/k3s-io/kine/pkg/drivers/generic"
-	"github.com/k3s-io/kine/pkg/tls"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )

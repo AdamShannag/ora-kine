@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/k3s-io/kine/pkg/util"
+	"github.com/AdamShannag/ora-kine/pkg/util"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )

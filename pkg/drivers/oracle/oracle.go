@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/k3s-io/kine/pkg/drivers/generic"
-	"github.com/k3s-io/kine/pkg/logstructured"
-	"github.com/k3s-io/kine/pkg/logstructured/sqllog"
-	"github.com/k3s-io/kine/pkg/server"
-	"github.com/k3s-io/kine/pkg/tls"
+	"github.com/AdamShannag/ora-kine/pkg/drivers/generic"
+	"github.com/AdamShannag/ora-kine/pkg/logstructured"
+	"github.com/AdamShannag/ora-kine/pkg/logstructured/sqllog"
+	"github.com/AdamShannag/ora-kine/pkg/server"
+	"github.com/AdamShannag/ora-kine/pkg/tls"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
