@@ -130,8 +130,8 @@ func NewOracleDialect(ctx context.Context, dataSourceName string, connPoolConfig
 	FROM
 	    KINE "KV"
 	WHERE
-	    KV.NAME LIKE :1
-	    AND KV.ID > :2
+	    KV.NAME LIKE ?
+	    AND KV.ID > ?
 	ORDER BY
 	    KV.ID ASC`,
 
@@ -181,37 +181,47 @@ FROM
                 FROM
                     KINE MKV
                 WHERE
-                    MKV.NAME LIKE :1
-                    AND MKV.ID <= :2
+                    MKV.NAME LIKE ?
+                    AND MKV.ID <= ?
                 GROUP BY
                     MKV.NAME
             ) MAXKV
             ON MAXKV.ID = KV.ID
         WHERE
             KV.DELETED = 0
-            OR :3 IS NOT NULL
+            OR ? IS NOT NULL
     ) LKV
 ORDER BY
     LKV.THEID ASC`,
 		getRevisionAfterSQL: `SELECT
-    *
+    LKV.ID,
+    LKV.OUTER_PREV_REVISION,
+    LKV.THEID,
+    LKV.NAME,
+    LKV.CREATED,
+    LKV.DELETED,
+    LKV.CREATE_REVISION,
+    LKV.PREV_REVISION,
+    LKV.LEASE,
+    LKV.VALUE,
+    LKV.OLD_VALUE
 FROM
     (
         SELECT
             (
                 SELECT
-                    MAX(RKV.ID)             AS ID
+                    MAX(RKV.ID)
                 FROM
                     KINE RKV
-            ),
+            ) AS ID,
             (
                 SELECT
-                    MAX(CRKV.PREV_REVISION) AS PREV_REVISION
+                    MAX(CRKV.PREV_REVISION)
                 FROM
                     KINE CRKV
                 WHERE
                     CRKV.NAME = 'compact_rev_key'
-            ),
+            ) AS OUTER_PREV_REVISION,
             KV.ID AS THEID,
             KV.NAME,
             KV.CREATED,
@@ -229,28 +239,24 @@ FROM
                 FROM
                     KINE MKV
                 WHERE
-                    MKV.NAME LIKE :1
-                    AND MKV.ID <= :2
+                    MKV.NAME LIKE ?
+                    AND MKV.ID <= ?
                     AND MKV.ID > (
                         SELECT
                             MAX(IKV.ID) AS ID
                         FROM
                             KINE IKV
                         WHERE
-                            IKV.NAME = :3
-                            AND IKV.ID <= :4
+                            IKV.NAME = ?
+                            AND IKV.ID <= ?
                     )
                 GROUP BY
                     MKV.NAME
             ) MAXKV
             ON MAXKV.ID = KV.ID
         WHERE
-            CASE
-                WHEN :5 = 1 THEN
-                    1
-                ELSE
-                    KV.DELETED
-            END = 0
+            KV.DELETED = 0
+            OR ? IS NOT NULL
     ) LKV
 ORDER BY
     LKV.THEID ASC`,
@@ -302,14 +308,14 @@ ORDER BY
                                 FROM
                                     KINE MKV
                                 WHERE
-                                    MKV.NAME LIKE :1
+                                    MKV.NAME LIKE ?
                                 GROUP BY
                                     MKV.NAME
                             ) MAXKV
                             ON MAXKV.ID = KV.ID
                         WHERE
                             KV.DELETED = 0
-                            OR :2 IS NOT NULL
+                            OR ? IS NOT NULL
                     ) LKV
                 ORDER BY
                     LKV.THEID ASC
@@ -330,13 +336,13 @@ FROM
 			KV.OLD_VALUE
 			FROM
 			KINE "KV"
-			WHERE KV.ID = :1`,
+			WHERE KV.ID = ?`,
 		deleteSQL: `
 		DELETE FROM KINE "KV"
-		WHERE KV.ID = :1`,
+		WHERE KV.ID = ?`,
 		updateCompactSQL: `
 		UPDATE KINE
-		SET PREV_REVISION = :1
+		SET PREV_REVISION = ?
 		WHERE NAME = 'compact_rev_key'`,
 		compactSQL: `DELETE FROM KINE KV
 WHERE
@@ -352,7 +358,7 @@ WHERE
                 WHERE
                     KP.NAME != 'compact_rev_key'
                     AND KP.PREV_REVISION != 0
-                    AND KP.ID <= :1
+                    AND KP.ID <= ?
                 UNION
                 SELECT
                     KD.ID            AS ID
@@ -360,7 +366,7 @@ WHERE
                     KINE KD
                 WHERE
                     KD.DELETED != 0
-                    AND KD.ID <= :2
+                    AND KD.ID <= ?
             )    KS
         WHERE
             KV.ID = KS.ID
