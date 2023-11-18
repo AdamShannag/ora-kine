@@ -29,6 +29,7 @@ type OracleDialect struct {
 	afterSQL              string
 	insertLastInsertIDSQL string
 	listRevisionStartSQL  string
+	listCurrentSQL        string
 	getRevisionAfterSQL   string
 	getRevisionSQL        string
 	countSQL              string
@@ -37,6 +38,7 @@ type OracleDialect struct {
 	compactSQL            string
 	PostCompactSQL        string
 	GetSizeSQL            string
+	fillSQL               string
 	lastInsertID          bool
 	FillRetryDuration     time.Duration
 
@@ -183,6 +185,63 @@ FROM
                 WHERE
                     MKV.NAME LIKE ?
                     AND MKV.ID <= ?
+                GROUP BY
+                    MKV.NAME
+            ) MAXKV
+            ON MAXKV.ID = KV.ID
+        WHERE
+            KV.DELETED = 0
+            OR ? IS NOT NULL
+    ) LKV
+ORDER BY
+    LKV.THEID ASC`,
+		listCurrentSQL: `SELECT
+    LKV.ID,
+    LKV.OUTER_PREV_REVISION,
+    LKV.THEID,
+    LKV.NAME,
+    LKV.CREATED,
+    LKV.DELETED,
+    LKV.CREATE_REVISION,
+    LKV.PREV_REVISION,
+    LKV.LEASE,
+    LKV.VALUE,
+    LKV.OLD_VALUE
+FROM
+    (
+        SELECT
+            (
+                SELECT
+                    MAX(RKV.ID)
+                FROM
+                    KINE RKV
+            ) AS ID,
+            (
+                SELECT
+                    MAX(CRKV.PREV_REVISION)
+                FROM
+                    KINE CRKV
+                WHERE
+                    CRKV.NAME = 'compact_rev_key'
+            ) AS OUTER_PREV_REVISION,
+            KV.ID AS THEID,
+            KV.NAME,
+            KV.CREATED,
+            KV.DELETED,
+            KV.CREATE_REVISION,
+            KV.PREV_REVISION,
+            KV.LEASE,
+            KV.VALUE,
+            KV.OLD_VALUE
+        FROM
+            KINE KV
+            JOIN (
+                SELECT
+                    MAX(MKV.ID) AS ID
+                FROM
+                    KINE MKV
+                WHERE
+                    MKV.NAME LIKE ?
                 GROUP BY
                     MKV.NAME
             ) MAXKV
@@ -377,6 +436,8 @@ WHERE
 		USER_SEGMENTS
 		WHERE
 		SEGMENT_NAME='KINE'`,
+		fillSQL: `INSERT INTO KINE(ID, NAME, CREATED, DELETED, CREATE_REVISION, PREV_REVISION, LEASE, VALUE, OLD_VALUE)
+		VALUES(?,?,?,?,?,?,?,?,?)`,
 	}, err
 
 }
@@ -402,63 +463,7 @@ func (o *OracleDialect) Migrate(ctx context.Context) {
 }
 
 func (o OracleDialect) ListCurrent(ctx context.Context, prefix string, limit int64, includeDeleted bool) (*sql.Rows, error) {
-	sql := `SELECT
-    LKV.ID,
-    LKV.OUTER_PREV_REVISION,
-    LKV.THEID,
-    LKV.NAME,
-    LKV.CREATED,
-    LKV.DELETED,
-    LKV.CREATE_REVISION,
-    LKV.PREV_REVISION,
-    LKV.LEASE,
-    LKV.VALUE,
-    LKV.OLD_VALUE
-FROM
-    (
-        SELECT
-            (
-                SELECT
-                    MAX(RKV.ID)
-                FROM
-                    KINE RKV
-            ) AS ID,
-            (
-                SELECT
-                    MAX(CRKV.PREV_REVISION)
-                FROM
-                    KINE CRKV
-                WHERE
-                    CRKV.NAME = 'compact_rev_key'
-            ) AS OUTER_PREV_REVISION,
-            KV.ID AS THEID,
-            KV.NAME,
-            KV.CREATED,
-            KV.DELETED,
-            KV.CREATE_REVISION,
-            KV.PREV_REVISION,
-            KV.LEASE,
-            KV.VALUE,
-            KV.OLD_VALUE
-        FROM
-            KINE KV
-            JOIN (
-                SELECT
-                    MAX(MKV.ID) AS ID
-                FROM
-                    KINE MKV
-                WHERE
-                    MKV.NAME LIKE ?
-                GROUP BY
-                    MKV.NAME
-            ) MAXKV
-            ON MAXKV.ID = KV.ID
-        WHERE
-            KV.DELETED = 0
-            OR ? IS NOT NULL
-    ) LKV
-ORDER BY
-    LKV.THEID ASC`
+	sql := o.listCurrentSQL
 
 	if limit > 0 {
 		sql = fmt.Sprintf("%s FETCH FIRST %d ROWS ONLY", sql, limit)
@@ -588,7 +593,7 @@ func (o OracleDialect) PostCompact(ctx context.Context) error {
 	return nil
 }
 func (o OracleDialect) Fill(ctx context.Context, revision int64) error {
-	_, err := o.createRow(ctx, &revision, fmt.Sprintf("gap-%d", revision), 0, 1, 0, 0, 0, nil, nil)
+	_, err := o.execute(ctx, o.fillSQL, revision, fmt.Sprintf("gap-%d", revision), 0, 1, 0, 0, 0, nil, nil)
 	return err
 }
 func (o OracleDialect) IsFill(key string) bool {
