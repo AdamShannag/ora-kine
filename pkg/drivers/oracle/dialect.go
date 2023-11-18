@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -39,6 +40,7 @@ type OracleDialect struct {
 	PostCompactSQL        string
 	GetSizeSQL            string
 	fillSQL               string
+	insertSQL             string
 	lastInsertID          bool
 	FillRetryDuration     time.Duration
 
@@ -438,6 +440,8 @@ WHERE
 		SEGMENT_NAME='KINE'`,
 		fillSQL: `INSERT INTO KINE(ID, NAME, CREATED, DELETED, CREATE_REVISION, PREV_REVISION, LEASE, VALUE, OLD_VALUE)
 		VALUES(?,?,?,?,?,?,?,?,?)`,
+		insertSQL: `INSERT INTO kine(name, created, deleted, create_revision, prev_revision, lease, value, old_value)
+			values(?, ?, ?, ?, ?, ?, ?, ?) RETURNING id INTO ?`,
 	}, err
 
 }
@@ -542,7 +546,8 @@ func (o OracleDialect) Insert(ctx context.Context, key string, create, delete bo
 	wait := strategy.Backoff(backoff.Linear(100 + time.Millisecond))
 
 	for i := uint(0); i < 20; i++ {
-		id, err = o.createRow(ctx, key, cVal, dVal, createRevision, previousRevision, ttl, value, prevValue)
+		err := o.execInsert(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, value, prevValue, &id)
+		log.Println(id)
 		if err != nil && o.InsertRetry != nil && o.InsertRetry(err) {
 			wait(i)
 			continue
@@ -636,20 +641,14 @@ func (o *OracleDialect) queryRow(ctx context.Context, sql string, args ...interf
 	return o.GormDB.WithContext(ctx).Raw(sql, args...).Row()
 }
 
-func (o *OracleDialect) createRow(ctx context.Context, key string, cVal, dVal int64, createRevision, previousRevision int64, ttl int64, value, prevValue []byte) (int64, error) {
-	logrus.Tracef("CREATE ROW, KEY: %s", key)
+func (o *OracleDialect) execInsert(ctx context.Context, sql string, args ...any) error {
+	logrus.Tracef("CREATE ROW, SQL: %s", sql)
 	startTime := time.Now()
-	k := kine.Kine{Name: key, Created: cVal,
-		Deleted: dVal, CreateRevision: createRevision,
-		PrevRevision: previousRevision, Lease: ttl,
-		Value: value, OldValue: prevValue}
-
-	result := o.GormDB.WithContext(ctx).Create(&k)
-
+	err := o.GormDB.WithContext(ctx).Exec(sql, args...)
 	defer func() {
-		metrics.ObserveSQL(startTime, o.ErrCode(result.Error), util.Stripped(key))
+		metrics.ObserveSQL(startTime, o.ErrCode(err.Error), util.Stripped(sql))
 	}()
-	return int64(k.ID), result.Error
+	return err.Error
 }
 
 func (o *OracleDialect) countRow(ctx context.Context, table string) (int64, error) {
