@@ -545,7 +545,7 @@ func (o OracleDialect) Insert(ctx context.Context, key string, create, delete bo
 	wait := strategy.Backoff(backoff.Linear(100 + time.Millisecond))
 
 	for i := uint(0); i < 20; i++ {
-		err := o.execInsert(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, string(value), string(prevValue), &id)
+		err := o.execInsert(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, value, prevValue, &id)
 		if err != nil && o.InsertRetry != nil && o.InsertRetry(err) {
 			wait(i)
 			continue
