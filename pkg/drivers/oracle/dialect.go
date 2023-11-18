@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -594,6 +595,10 @@ func (o OracleDialect) PostCompact(ctx context.Context) error {
 }
 func (o OracleDialect) Fill(ctx context.Context, revision int64) error {
 	_, err := o.execute(ctx, o.fillSQL, revision, fmt.Sprintf("gap-%d", revision), 0, 1, 0, 0, 0, nil, nil)
+
+	log.Println("\n---------------------------------------------------------------------------------\n")
+	log.Println(err)
+	log.Println("\n---------------------------------------------------------------------------------\n")
 	return err
 }
 func (o OracleDialect) IsFill(key string) bool {
@@ -645,6 +650,12 @@ func (o *OracleDialect) createRow(ctx context.Context, key string, cVal, dVal in
 		Value: value, OldValue: prevValue}
 
 	result := o.GormDB.WithContext(ctx).Create(&k)
+	log.Println("\n---------------------------------------------------------------------------------\n")
+	log.Println(result.Error)
+	log.Println(k)
+	log.Println(k.Value)
+	log.Println(k.OldValue)
+	log.Println("\n---------------------------------------------------------------------------------\n")
 
 	defer func() {
 		metrics.ObserveSQL(startTime, o.ErrCode(result.Error), util.Stripped(key))
