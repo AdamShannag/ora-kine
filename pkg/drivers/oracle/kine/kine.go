@@ -32,8 +32,8 @@ type Kine struct {
 	CreateRevision int64  `gorm:"type:INTEGER"`
 	PrevRevision   int64  `gorm:"type:INTEGER"`
 	Lease          int64  `gorm:"type:INTEGER"`
-	Value          []byte `gorm:"type:BLOB;create:false"`
-	OldValue       []byte `gorm:"type:BLOB;create:false"`
+	Value          []byte `gorm:"type:CLOB;create:false"`
+	OldValue       []byte `gorm:"type:CLOB;create:false"`
 }
 
 func (Kine) TableName() string {
