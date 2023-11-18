@@ -381,7 +381,7 @@ ORDER BY
             )
     ) AS ROW_COUNT
 FROM
-    DUAL;`,
+    DUAL`,
 		getRevisionSQL: `
 			SELECT
 			0, 0, KV.ID AS THEID,
@@ -429,7 +429,7 @@ WHERE
             )    KS
         WHERE
             KV.ID = KS.ID
-    );`,
+    )`,
 		GetSizeSQL: `SELECT
 		SUM(BYTES)/1024/1024
 		FROM
