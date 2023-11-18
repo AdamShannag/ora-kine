@@ -522,8 +522,8 @@ func (o OracleDialect) Insert(ctx context.Context, key string, create, delete bo
 		}()
 	}
 
-	cVal := 0
-	dVal := 0
+	var cVal int64 = 0
+	var dVal int64 = 0
 	if create {
 		cVal = 1
 	}
@@ -542,7 +542,7 @@ func (o OracleDialect) Insert(ctx context.Context, key string, create, delete bo
 	wait := strategy.Backoff(backoff.Linear(100 + time.Millisecond))
 
 	for i := uint(0); i < 20; i++ {
-		id, err = o.createRow(ctx, nil, key, cVal, dVal, createRevision, previousRevision, ttl, value, prevValue)
+		id, err = o.createRow(ctx, key, cVal, dVal, createRevision, previousRevision, ttl, value, prevValue)
 		if err != nil && o.InsertRetry != nil && o.InsertRetry(err) {
 			wait(i)
 			continue
@@ -636,17 +636,13 @@ func (o *OracleDialect) queryRow(ctx context.Context, sql string, args ...interf
 	return o.GormDB.WithContext(ctx).Raw(revSQL, args...).Row()
 }
 
-func (o *OracleDialect) createRow(ctx context.Context, id *int64, key string, cVal, dVal int, createRevision, previousRevision int64, ttl int64, value, prevValue []byte) (int64, error) {
+func (o *OracleDialect) createRow(ctx context.Context, key string, cVal, dVal int64, createRevision, previousRevision int64, ttl int64, value, prevValue []byte) (int64, error) {
 	logrus.Tracef("CREATE ROW, KEY: %s", key)
 	startTime := time.Now()
-	k := kine.Kine{Name: key, Created: uint(cVal),
-		Deleted: uint(dVal), CreateRevision: uint(createRevision),
-		PrevRevision: uint(previousRevision), Lease: uint(ttl),
+	k := kine.Kine{Name: key, Created: cVal,
+		Deleted: dVal, CreateRevision: createRevision,
+		PrevRevision: previousRevision, Lease: ttl,
 		Value: value, OldValue: prevValue}
-
-	if id != nil {
-		k.ID = uint(*id)
-	}
 
 	result := o.GormDB.WithContext(ctx).Create(&k)
 
