@@ -440,7 +440,7 @@ WHERE
 		fillSQL: `INSERT INTO KINE(ID, NAME, CREATED, DELETED, CREATE_REVISION, PREV_REVISION, LEASE, VALUE, OLD_VALUE)
 		VALUES(?,?,?,?,?,?,?,?,?)`,
 		insertSQL: `INSERT INTO kine(name, created, deleted, create_revision, prev_revision, lease, value, old_value)
-	VALUES (:name, :created, :deleted, :create_revision, :prev_revision, :lease, :value, :old_value)
+	VALUES (:name, :created, :deleted, :create_revision, :prev_revision, :lease, HEXTORAW(:value), HEXTORAW(:old_value))
 	RETURNING id INTO :id`,
 	}, err
 
