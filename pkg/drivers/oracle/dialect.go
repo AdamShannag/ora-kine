@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	go_ora "github.com/sijms/go-ora/v2"
-
 	"github.com/AdamShannag/ora-kine/pkg/drivers/generic"
 	"github.com/AdamShannag/ora-kine/pkg/drivers/oracle/kine"
 	"github.com/AdamShannag/ora-kine/pkg/metrics"
@@ -442,7 +440,8 @@ WHERE
 		fillSQL: `INSERT INTO KINE(ID, NAME, CREATED, DELETED, CREATE_REVISION, PREV_REVISION, LEASE, VALUE, OLD_VALUE)
 		VALUES(?,?,?,?,?,?,?,?,?)`,
 		insertSQL: `INSERT INTO kine(name, created, deleted, create_revision, prev_revision, lease, value, old_value)
-			values(?, ?, ?, ?, ?, ?, ?, ?) RETURNING id INTO ?`,
+	VALUES (:name, :created, :deleted, :create_revision, :prev_revision, :lease, :value, :old_value)
+	RETURNING id INTO :id`,
 	}, err
 
 }
@@ -547,7 +546,7 @@ func (o OracleDialect) Insert(ctx context.Context, key string, create, delete bo
 	wait := strategy.Backoff(backoff.Linear(100 + time.Millisecond))
 
 	for i := uint(0); i < 20; i++ {
-		err = o.execInsert(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, go_ora.Blob{Data: value}, go_ora.Blob{Data: prevValue}, &id)
+		err = o.execInsert(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, value, prevValue, &id)
 		if err != nil && o.InsertRetry != nil && o.InsertRetry(err) {
 			wait(i)
 			continue
@@ -597,7 +596,7 @@ func (o OracleDialect) PostCompact(ctx context.Context) error {
 	return nil
 }
 func (o OracleDialect) Fill(ctx context.Context, revision int64) error {
-	_, err := o.execute(ctx, o.fillSQL, revision, fmt.Sprintf("gap-%d", revision), 0, 1, 0, 0, 0, go_ora.Blob{Data: nil}, go_ora.Blob{Data: nil})
+	_, err := o.execute(ctx, o.fillSQL, revision, fmt.Sprintf("gap-%d", revision), 0, 1, 0, 0, 0, nil, nil)
 	return err
 }
 func (o OracleDialect) IsFill(key string) bool {
@@ -640,14 +639,36 @@ func (o *OracleDialect) queryRow(ctx context.Context, sql string, args ...interf
 	return o.GormDB.WithContext(ctx).Raw(sql, args...).Row()
 }
 
-func (o *OracleDialect) execInsert(ctx context.Context, sql string, args ...any) error {
-	logrus.Tracef("CREATE ROW, SQL: %s", sql)
+func (o *OracleDialect) execInsert(ctx context.Context, sqrl string, key string, create, delete, createRevision, previousRevision int64, ttl int64, value, prevValue []byte, id *int64) error {
+
+	// Prepare the statement
+	stmt, err := o.DB.Prepare(sqrl)
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	// Execute the statement with the actual values
+	_, err = stmt.ExecContext(ctx,
+		sql.Named("name", key),
+		sql.Named("created", create),
+		sql.Named("deleted", delete),
+		sql.Named("create_revision", createRevision),
+		sql.Named("prev_revision", previousRevision),
+		sql.Named("lease", ttl),
+		sql.Named("value", value),
+		sql.Named("old_value", prevValue),
+		sql.Named("id", id),
+	)
+
+	logrus.Tracef("CREATE ROW, SQL: %s", sqrl)
 	startTime := time.Now()
-	err := o.GormDB.WithContext(ctx).Exec(sql, args...)
+	// err := o.GormDB.WithContext(ctx).Exec(sql, args...)
 	defer func() {
-		metrics.ObserveSQL(startTime, o.ErrCode(err.Error), util.Stripped(sql))
+		metrics.ObserveSQL(startTime, o.ErrCode(err), util.Stripped(sqrl))
 	}()
-	return err.Error
+	return err
 }
 
 func (o *OracleDialect) countRow(ctx context.Context, table string) (int64, error) {
