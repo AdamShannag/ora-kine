@@ -639,36 +639,28 @@ func (o *OracleDialect) queryRow(ctx context.Context, sql string, args ...interf
 
 func (o *OracleDialect) execInsert(ctx context.Context, sqrl string, key string, create, delete, createRevision, previousRevision int64, ttl int64, value, prevValue []byte, id *int64) error {
 
-	// Prepare the statement
-	stmt, err := o.DB.Prepare(sqrl)
-	if err != nil {
-		return err
+	k := &kine.Kine{
+		Name:           key,
+		Created:        int(create),
+		Deleted:        int(delete),
+		CreateRevision: int(createRevision),
+		PrevRevision:   int(previousRevision),
+		Lease:          int(ttl),
+		Value:          value,
+		OldValue:       prevValue,
 	}
 
-	defer stmt.Close()
-
-	// Execute the statement with the actual values
-	_, err = stmt.ExecContext(ctx,
-		sql.Named("name", key),
-		sql.Named("created", create),
-		sql.Named("deleted", delete),
-		sql.Named("create_revision", createRevision),
-		sql.Named("prev_revision", previousRevision),
-		sql.Named("lease", ttl),
-		sql.Named("value", value),
-		sql.Named("old_value", prevValue),
-		sql.Named("id", id),
-	)
-
+	d := o.GormDB.WithContext(ctx).Create(k)
+	*id = int64(k.ID)
 	logrus.Tracef("CREATE ROW, SQL: %s", sqrl)
 	startTime := time.Now()
 	// err := o.GormDB.WithContext(ctx).Exec(sql, args...)
 	defer func() {
-		metrics.ObserveSQL(startTime, o.ErrCode(err), util.Stripped(sqrl))
+		metrics.ObserveSQL(startTime, o.ErrCode(d.Error), util.Stripped(sqrl))
 	}()
-	if err != nil {
+	if d.Error != nil {
 		log.Print("\n========================================================\n")
-		log.Println("\n\n\n\n ERROR HERE:\n\n\n", err)
+		log.Println("\n\n\n\n ERROR HERE:\n\n\n", d.Error)
 		log.Print("\n---------------------------------------------------------\n")
 		log.Println("\n\n\n\n key HERE:\n\n\n", key)
 		log.Print("\n---------------------------------------------------------\n")
@@ -682,12 +674,12 @@ func (o *OracleDialect) execInsert(ctx context.Context, sqrl string, key string,
 		log.Print("\n---------------------------------------------------------\n")
 		log.Println("\n\n\n\n lease HERE:\n\n\n", ttl)
 		log.Print("\n---------------------------------------------------------\n")
-		log.Println("\n\n\n\n value HERE:\n\n\n", string(value), "\n\n LENGTH: ", len(value))
+		log.Println("\n\n\n\n value HERE:\n\n\n", "\n\n LENGTH: ", len(value))
 		log.Print("\n---------------------------------------------------------\n")
 		log.Println("\n\n\n\n old_value HERE:\n\n\n", string(prevValue), "\n\n LENGTH: ", len(prevValue))
 		log.Print("\n========================================================\n")
 	}
-	return err
+	return d.Error
 }
 
 func (o *OracleDialect) countRow(ctx context.Context, table string) (int64, error) {
