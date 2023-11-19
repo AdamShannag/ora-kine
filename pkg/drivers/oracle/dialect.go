@@ -5,9 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
+
+	go_ora "github.com/sijms/go-ora/v2"
 
 	"github.com/AdamShannag/ora-kine/pkg/drivers/generic"
 	"github.com/AdamShannag/ora-kine/pkg/drivers/oracle/kine"
@@ -546,10 +547,7 @@ func (o OracleDialect) Insert(ctx context.Context, key string, create, delete bo
 	wait := strategy.Backoff(backoff.Linear(100 + time.Millisecond))
 
 	for i := uint(0); i < 20; i++ {
-		log.Println("\n------------------------------------------------\n")
-		log.Println(string(value))
-		log.Println("\n------------------------------------------------\n")
-		err = o.execInsert(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, value, prevValue, &id)
+		err = o.execInsert(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, go_ora.Blob{Data: value}, go_ora.Blob{Data: prevValue}, &id)
 		if err != nil && o.InsertRetry != nil && o.InsertRetry(err) {
 			wait(i)
 			continue
@@ -599,7 +597,7 @@ func (o OracleDialect) PostCompact(ctx context.Context) error {
 	return nil
 }
 func (o OracleDialect) Fill(ctx context.Context, revision int64) error {
-	_, err := o.execute(ctx, o.fillSQL, revision, fmt.Sprintf("gap-%d", revision), 0, 1, 0, 0, 0, nil, nil)
+	_, err := o.execute(ctx, o.fillSQL, revision, fmt.Sprintf("gap-%d", revision), 0, 1, 0, 0, 0, go_ora.Blob{Data: nil}, go_ora.Blob{Data: nil})
 	return err
 }
 func (o OracleDialect) IsFill(key string) bool {
