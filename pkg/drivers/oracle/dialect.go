@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -666,6 +667,11 @@ func (o *OracleDialect) execInsert(ctx context.Context, sqrl string, key string,
 	defer func() {
 		metrics.ObserveSQL(startTime, o.ErrCode(err), util.Stripped(sqrl))
 	}()
+	if err != nil {
+		log.Print("\n========================================================\n")
+		log.Println("\n\n\n\nERROR HERE:\n\n\n", err)
+		log.Print("\n========================================================\n")
+	}
 	return err
 }
 
