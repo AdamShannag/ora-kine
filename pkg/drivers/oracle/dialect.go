@@ -3,7 +3,6 @@ package oracle
 import (
 	"context"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -442,7 +441,7 @@ WHERE
 		fillSQL: `INSERT INTO KINE(ID, NAME, CREATED, DELETED, CREATE_REVISION, PREV_REVISION, LEASE, VALUE, OLD_VALUE)
 		VALUES(?,?,?,?,?,?,?,?,?)`,
 		insertSQL: `INSERT INTO kine(name, created, deleted, create_revision, prev_revision, lease, value, old_value)
-	VALUES (:name, :created, :deleted, :create_revision, :prev_revision, :lease, HEXTORAW(:value), HEXTORAW(:old_value))
+	VALUES (:name, :created, :deleted, :create_revision, :prev_revision, :lease, TO_BLOB(:value), TO_BLOB(:old_value))
 	RETURNING id INTO :id`,
 	}, err
 
@@ -656,8 +655,8 @@ func (o *OracleDialect) execInsert(ctx context.Context, sqrl string, key string,
 		sql.Named("create_revision", createRevision),
 		sql.Named("prev_revision", previousRevision),
 		sql.Named("lease", ttl),
-		sql.Named("value", hex.EncodeToString(value)),
-		sql.Named("old_value", hex.EncodeToString(prevValue)),
+		sql.Named("value", value),
+		sql.Named("old_value", prevValue),
 		sql.Named("id", id),
 	)
 
