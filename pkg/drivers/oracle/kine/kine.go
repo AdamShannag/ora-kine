@@ -25,13 +25,13 @@ func ErrorIs(err error, code OraErrorCode) bool {
 }
 
 type Kine struct {
-	ID             int64  `gorm:"primary_key;type:NUMBER(10) not null"`
+	ID             int    `gorm:"primary_key;type:NUMBER(10) not null"`
 	Name           string `gorm:"type:VARCHAR2(630)"`
-	Created        int64  `gorm:"type:NUMBER(10)"`
-	Deleted        int64  `gorm:"type:NUMBER(10)"`
-	CreateRevision int64  `gorm:"type:NUMBER(10)"`
-	PrevRevision   int64  `gorm:"type:NUMBER(10)"`
-	Lease          int64  `gorm:"type:NUMBER(10)"`
+	Created        int    `gorm:"type:NUMBER(10)"`
+	Deleted        int    `gorm:"type:NUMBER(10)"`
+	CreateRevision int    `gorm:"type:NUMBER(10)"`
+	PrevRevision   int    `gorm:"type:NUMBER(10)"`
+	Lease          int    `gorm:"type:NUMBER(10)"`
 	Value          []byte `gorm:"type:BLOB;create:false"`
 	OldValue       []byte `gorm:"type:BLOB;create:false"`
 }

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -25,8 +26,6 @@ type OracleDialect struct {
 	DB        *sql.DB
 	GormDB    *gorm.DB
 	KineTable *kine.Kine
-
-	counter int64
 
 	afterSQL              string
 	insertLastInsertIDSQL string
@@ -442,8 +441,7 @@ WHERE
 		fillSQL: `INSERT INTO KINE(ID, NAME, CREATED, DELETED, CREATE_REVISION, PREV_REVISION, LEASE, VALUE, OLD_VALUE)
 		VALUES(?,?,?,?,?,?,?,?,?)`,
 		insertSQL: `INSERT INTO kine(name, created, deleted, create_revision, prev_revision, lease, value, old_value)
-			values(?, ?, ?, ?, ?, ?, ?, ?)`,
-		counter: -1,
+			values(?, ?, ?, ?, ?, ?, ?, ?) RETURNING id INTO ?`,
 	}, err
 
 }
@@ -548,9 +546,10 @@ func (o OracleDialect) Insert(ctx context.Context, key string, create, delete bo
 	wait := strategy.Backoff(backoff.Linear(100 + time.Millisecond))
 
 	for i := uint(0); i < 20; i++ {
-		err = o.execInsert(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, value, prevValue)
-		o.counter++
-		id = o.counter
+		log.Println("\n------------------------------------------------\n")
+		log.Println(string(value))
+		log.Println("\n------------------------------------------------\n")
+		err = o.execInsert(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, value, prevValue, &id)
 		if err != nil && o.InsertRetry != nil && o.InsertRetry(err) {
 			wait(i)
 			continue
