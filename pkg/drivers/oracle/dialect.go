@@ -1,12 +1,16 @@
 package oracle
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
+
+	"compress/gzip"
 
 	"github.com/AdamShannag/ora-kine/pkg/drivers/generic"
 	"github.com/AdamShannag/ora-kine/pkg/drivers/oracle/kine"
@@ -440,7 +444,7 @@ WHERE
 		fillSQL: `INSERT INTO KINE(ID, NAME, CREATED, DELETED, CREATE_REVISION, PREV_REVISION, LEASE, VALUE, OLD_VALUE)
 		VALUES(?,?,?,?,?,?,?,?,?)`,
 		insertSQL: `INSERT INTO kine(name, created, deleted, create_revision, prev_revision, lease, value, old_value)
-	VALUES (:name, :created, :deleted, :create_revision, :prev_revision, :lease, HEXTORAW(:value), HEXTORAW(:old_value))
+	VALUES (:name, :created, :deleted, :create_revision, :prev_revision, :lease, :value, :old_value)
 	RETURNING id INTO :id`,
 	}, err
 
@@ -472,6 +476,7 @@ func (o OracleDialect) ListCurrent(ctx context.Context, prefix string, limit int
 	if limit > 0 {
 		sql = fmt.Sprintf("%s FETCH FIRST %d ROWS ONLY", sql, limit)
 	}
+
 	return o.query(ctx, sql, prefix, includeDeleted)
 }
 func (o OracleDialect) List(ctx context.Context, prefix, startKey string, limit, revision int64, includeDeleted bool) (*sql.Rows, error) {
@@ -602,9 +607,6 @@ func (o OracleDialect) Fill(ctx context.Context, revision int64) error {
 func (o OracleDialect) IsFill(key string) bool {
 	return strings.HasPrefix(key, "gap-")
 }
-func (o OracleDialect) BeginTx(ctx context.Context, opts *sql.TxOptions) (server.Transaction, error) {
-	return nil, errors.New("BeginTx: NOT IMPLEMENTED METHOD")
-}
 func (o OracleDialect) GetSize(ctx context.Context) (int64, error) {
 	if o.GetSizeSQL == "" {
 		return 0, errors.New("driver does not support size reporting")
@@ -649,6 +651,21 @@ func (o *OracleDialect) execInsert(ctx context.Context, sqrl string, key string,
 
 	defer stmt.Close()
 
+	var compressedValue bytes.Buffer
+	writer := gzip.NewWriter(&compressedValue)
+	_, err = writer.Write(value)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var compressedPrevValue bytes.Buffer
+	writer2 := gzip.NewWriter(&compressedPrevValue)
+	_, err = writer2.Write(prevValue)
+	if err != nil {
+		log.Fatal(err)
+	}
+	writer.Close()
+	writer2.Close()
+
 	// Execute the statement with the actual values
 	_, err = stmt.ExecContext(ctx,
 		sql.Named("name", key),
@@ -657,8 +674,8 @@ func (o *OracleDialect) execInsert(ctx context.Context, sqrl string, key string,
 		sql.Named("create_revision", createRevision),
 		sql.Named("prev_revision", previousRevision),
 		sql.Named("lease", ttl),
-		sql.Named("value", value),
-		sql.Named("old_value", prevValue),
+		sql.Named("value", compressedValue.Bytes()),
+		sql.Named("old_value", compressedPrevValue.Bytes()),
 		sql.Named("id", id),
 	)
 
@@ -702,3 +719,19 @@ func (d *OracleDialect) execute(ctx context.Context, sql string, args ...interfa
 	}
 	return
 }
+
+// func decompressData(value []byte) []byte {
+// 	reader, err := gzip.NewReader(bytes.NewBuffer(value))
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	defer reader.Close()
+
+// 	var decompressedData bytes.Buffer
+// 	_, err = decompressedData.ReadFrom(reader)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+
+// 	return decompressedData.Bytes()
+// }
