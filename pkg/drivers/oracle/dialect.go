@@ -545,6 +545,8 @@ func (o OracleDialect) Insert(ctx context.Context, key string, create, delete bo
 		_, err := o.execute(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, value, prevValue, &id)
 		if err != nil {
 			log.Println("-----------------------------------------------------")
+			log.Println(err)
+			log.Println("-----------------------------------------------------")
 			fmt.Println(value)
 			log.Println("-----------------------------------------------------")
 			fmt.Println(hex.EncodeToString(value))
