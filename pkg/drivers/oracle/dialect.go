@@ -3,8 +3,10 @@ package oracle
 import (
 	"context"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -541,6 +543,15 @@ func (o OracleDialect) Insert(ctx context.Context, key string, create, delete bo
 
 	for i := uint(0); i < 20; i++ {
 		_, err := o.execute(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, value, prevValue, &id)
+		if err != nil {
+			log.Println("-----------------------------------------------------")
+			fmt.Println(value)
+			log.Println("-----------------------------------------------------")
+			fmt.Println(hex.EncodeToString(value))
+			log.Println("-----------------------------------------------------")
+			fmt.Println(string(value))
+			log.Println("-----------------------------------------------------")
+		}
 		if err != nil && o.InsertRetry != nil && o.InsertRetry(err) {
 			wait(i)
 			continue
