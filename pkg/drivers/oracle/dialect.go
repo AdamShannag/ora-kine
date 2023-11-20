@@ -188,7 +188,7 @@ FROM
             ON MAXKV.ID = KV.ID
         WHERE
             KV.DELETED = 0
-            OR :3 IS NOT NULL
+            OR (:3 = 'y')
     ) LKV
 ORDER BY
     LKV.THEID ASC`,
@@ -245,7 +245,7 @@ FROM
             ON MAXKV.ID = KV.ID
         WHERE
             KV.DELETED = 0
-            OR :2 IS NOT NULL
+            OR (:2 = 'y')
     ) LKV
 ORDER BY
     LKV.THEID ASC`,
@@ -312,7 +312,7 @@ FROM
             ON MAXKV.ID = KV.ID
         WHERE
             KV.DELETED = 0
-            OR :5 IS NOT NULL
+            OR (:5 = 'y')
     ) LKV
 ORDER BY
     LKV.THEID ASC`,
@@ -371,7 +371,7 @@ ORDER BY
                             ON MAXKV.ID = KV.ID
                         WHERE
                             KV.DELETED = 0
-                            OR :2 IS NOT NULL
+                            OR (:2 = 'y')
                     ) LKV
                 ORDER BY
                     LKV.THEID ASC
@@ -473,22 +473,31 @@ func (o OracleDialect) ListCurrent(ctx context.Context, prefix string, limit int
 	log.Println("===========================================================")
 	log.Println(sql, prefix, includeDeleted)
 	log.Println("===========================================================")
-	return o.query(ctx, sql, prefix, includeDeleted)
+	y := 'y'
+	if !includeDeleted {
+		y = 'n'
+	}
+	return o.query(ctx, sql, prefix, y)
 }
 func (o OracleDialect) List(ctx context.Context, prefix, startKey string, limit, revision int64, includeDeleted bool) (*sql.Rows, error) {
+	y := 'y'
+	if !includeDeleted {
+		y = 'n'
+	}
 	if startKey == "" {
 		sql := o.listRevisionStartSQL
 		if limit > 0 {
 			sql = fmt.Sprintf("%s FETCH FIRST %d ROWS ONLY", sql, limit)
 		}
-		return o.query(ctx, sql, prefix, revision, includeDeleted)
+
+		return o.query(ctx, sql, prefix, revision, y)
 	}
 
 	sql := o.getRevisionAfterSQL
 	if limit > 0 {
 		sql = fmt.Sprintf("%s FETCH FIRST %d ROWS ONLY", sql, limit)
 	}
-	return o.query(ctx, sql, prefix, revision, startKey, revision, includeDeleted)
+	return o.query(ctx, sql, prefix, revision, startKey, revision, y)
 }
 func (o OracleDialect) Count(ctx context.Context, prefix string) (int64, int64, error) {
 	var (
