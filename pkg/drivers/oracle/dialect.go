@@ -17,7 +17,6 @@ import (
 	"github.com/Rican7/retry/strategy"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
-	go_ora "github.com/sijms/go-ora/v2"
 	"github.com/sirupsen/logrus"
 )
 
@@ -541,7 +540,7 @@ func (o OracleDialect) Insert(ctx context.Context, key string, create, delete bo
 	wait := strategy.Backoff(backoff.Linear(100 + time.Millisecond))
 
 	for i := uint(0); i < 20; i++ {
-		_, err := o.execute(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, go_ora.Blob{Data: value}, go_ora.Blob{Data: prevValue}, &id)
+		_, err := o.execute(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, value, prevValue, &id)
 		if err != nil && o.InsertRetry != nil && o.InsertRetry(err) {
 			wait(i)
 			continue
