@@ -471,8 +471,10 @@ func (o OracleDialect) Count(ctx context.Context, prefix string) (int64, int64, 
 		id  int64
 	)
 
-	row := o.queryRow(ctx, o.countSQL, prefix, false)
+	row := o.queryRow(ctx, o.countSQL, prefix, 'n')
 	err := row.Scan(&rev, &id)
+	log.Println(o.countSQL)
+	log.Println(err)
 	return rev.Int64, id, err
 }
 func (o OracleDialect) CurrentRevision(ctx context.Context) (int64, error) {
