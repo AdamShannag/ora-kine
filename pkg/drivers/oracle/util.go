@@ -6,34 +6,31 @@ import (
 
 	"github.com/AdamShannag/ora-kine/pkg/drivers/generic"
 	"github.com/AdamShannag/ora-kine/pkg/tls"
-	oracle "github.com/godoes/gorm-oracle"
+	_ "github.com/sijms/go-ora/v2"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 const (
 	defaultMaxIdleConns = 2 // copied from database/sql
 )
 
-func openAndTest(dataSourceName string) (*gorm.DB, *sql.DB, error) {
-	gormDB, err := gorm.Open(oracle.Open(dataSourceName), &gorm.Config{})
+func openAndTest(dataSourceName string) (*sql.DB, error) {
+	db, err := sql.Open("oracle", dataSourceName)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-
-	db, err := gormDB.DB()
 
 	for i := 0; i < 3; i++ {
 		if err := db.Ping(); err != nil {
 			db.Close()
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return gormDB, db, nil
+	return db, nil
 }
 
 func configureConnectionPooling(connPoolConfig generic.ConnectionPoolConfig, db *sql.DB) {

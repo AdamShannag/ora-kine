@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/AdamShannag/ora-kine/pkg/drivers/generic"
+	"github.com/AdamShannag/ora-kine/pkg/drivers/oracle/kine"
 	"github.com/AdamShannag/ora-kine/pkg/logstructured"
 	"github.com/AdamShannag/ora-kine/pkg/logstructured/sqllog"
 	"github.com/AdamShannag/ora-kine/pkg/server"
@@ -30,7 +31,7 @@ func New(ctx context.Context, dataSourceName string, tlsInfo tls.Config, connPoo
 
 	dialect.FillRetryDuration = time.Millisecond + 5
 
-	if err := dialect.KineTable.Setup(dialect.GormDB); err != nil {
+	if err := kine.Setup(ctx, dialect.DB); err != nil {
 		return nil, err
 	}
 
