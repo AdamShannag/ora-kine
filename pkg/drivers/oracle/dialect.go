@@ -469,6 +469,10 @@ func (o OracleDialect) ListCurrent(ctx context.Context, prefix string, limit int
 	if limit > 0 {
 		sql = fmt.Sprintf("%s FETCH FIRST %d ROWS ONLY", sql, limit)
 	}
+
+	log.Println("===========================================================")
+	log.Println(sql, prefix, includeDeleted)
+	log.Println("===========================================================")
 	return o.query(ctx, sql, prefix, includeDeleted)
 }
 func (o OracleDialect) List(ctx context.Context, prefix, startKey string, limit, revision int64, includeDeleted bool) (*sql.Rows, error) {
