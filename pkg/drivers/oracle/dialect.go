@@ -135,17 +135,7 @@ func NewOracleDialect(ctx context.Context, dataSourceName string, connPoolConfig
 	    KV.ID ASC`,
 
 		listRevisionStartSQL: `SELECT
-    LKV.ID,
-    LKV.OUTER_PREV_REVISION,
-    LKV.THEID,
-    LKV.NAME,
-    LKV.CREATED,
-    LKV.DELETED,
-    LKV.CREATE_REVISION,
-    LKV.PREV_REVISION,
-    LKV.LEASE,
-    LKV.VALUE,
-    LKV.OLD_VALUE
+*
 FROM
     (
         SELECT
@@ -193,17 +183,7 @@ FROM
 ORDER BY
     LKV.THEID ASC`,
 		listCurrentSQL: `SELECT
-    LKV.ID,
-    LKV.OUTER_PREV_REVISION,
-    LKV.THEID,
-    LKV.NAME,
-    LKV.CREATED,
-    LKV.DELETED,
-    LKV.CREATE_REVISION,
-    LKV.PREV_REVISION,
-    LKV.LEASE,
-    LKV.VALUE,
-    LKV.OLD_VALUE
+*
 FROM
     (
         SELECT
@@ -250,17 +230,7 @@ FROM
 ORDER BY
     LKV.THEID ASC`,
 		getRevisionAfterSQL: `SELECT
-    LKV.ID,
-    LKV.OUTER_PREV_REVISION,
-    LKV.THEID,
-    LKV.NAME,
-    LKV.CREATED,
-    LKV.DELETED,
-    LKV.CREATE_REVISION,
-    LKV.PREV_REVISION,
-    LKV.LEASE,
-    LKV.VALUE,
-    LKV.OLD_VALUE
+*
 FROM
     (
         SELECT
