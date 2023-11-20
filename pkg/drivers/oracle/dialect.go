@@ -3,7 +3,6 @@ package oracle
 import (
 	"context"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -39,6 +38,7 @@ type OracleDialect struct {
 	GetSizeSQL            string
 	fillSQL               string
 	insertSQL             string
+	updateSQL             string
 	lastInsertID          bool
 	FillRetryDuration     time.Duration
 
@@ -438,6 +438,7 @@ WHERE
 		insertSQL: `INSERT INTO kine(name, created, deleted, create_revision, prev_revision, lease, value, old_value)
 	VALUES (:1, :2, :3, :4, :5, :6, :7, :8)
 	RETURNING id INTO :9`,
+		updateSQL: `UPDATE kine SET value = :7, old_value = :8 WHERE id = :9`,
 	}, err
 
 }
@@ -542,17 +543,17 @@ func (o OracleDialect) Insert(ctx context.Context, key string, create, delete bo
 	wait := strategy.Backoff(backoff.Linear(100 + time.Millisecond))
 
 	for i := uint(0); i < 20; i++ {
-		_, err := o.execute(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, value, prevValue, &id)
-		if err != nil {
-			log.Println("-----------------------------------------------------")
-			log.Println(err)
-			log.Println("-----------------------------------------------------")
-			fmt.Println(value)
-			log.Println("-----------------------------------------------------")
-			fmt.Println(hex.EncodeToString(value))
-			log.Println("-----------------------------------------------------")
-			fmt.Println(string(value))
-			log.Println("-----------------------------------------------------")
+		_, err = o.execute(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, value, prevValue, &id)
+		if kine.ErrorIs(err, kine.CannotBindLong) {
+			_, err = o.execute(ctx, o.insertSQL, key, cVal, dVal, createRevision, previousRevision, ttl, nil, nil, &id)
+			if err != nil {
+				log.Println(err)
+			} else {
+				_, err = o.execute(ctx, o.updateSQL, value, prevValue, id)
+				if err != nil {
+					log.Println(err)
+				}
+			}
 		}
 		if err != nil && o.InsertRetry != nil && o.InsertRetry(err) {
 			wait(i)

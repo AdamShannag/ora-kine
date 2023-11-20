@@ -15,6 +15,7 @@ type OraErrorCode string
 const (
 	UniqueViolation         OraErrorCode = "ORA-00001"
 	NameAlreadyInUse        OraErrorCode = "ORA-00955"
+	CannotBindLong          OraErrorCode = "ORA-01461"
 	TableOrViewDoesNotExist OraErrorCode = "ORA-00942"
 )
 
